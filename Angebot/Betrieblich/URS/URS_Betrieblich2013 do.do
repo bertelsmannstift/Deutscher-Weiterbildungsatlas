@@ -1,0 +1,408 @@
+
+********************************************************************************************************************
+************************************************  Stata **********************************************
+                               
+                                                ***
+                                                                                                                    
+********************************************************************************************************************
+clear all
+
+*** Version festlegen
+version 15.1 /*Version einfügen*/
+
+*** Bildschirmausgabe steuern
+set more off
+set logtype text
+set linesize 255 
+
+
+
+********************************************************************************************************************
+*** Aufzeichung in Protokoll starten.
+capture log close
+log using "G:\FZDH\LSK\Nutzungsantraege\3451-2017 DIE - Schrader (3)\KDFV\20180528\20180606.log", replace
+
+
+********************************************************************************************************************
+********************************************************************************************************************
+********************************************************************************************************************
+
+
+********************************************************************************************************************
+********************************************************************************************************************
+*** Titel des Projekts: 			<>
+*** Datengrundlage: 				<Unternehmensregister 2013/2014>
+***
+*** Dateiname des Programmcodes: 	<markt_WB.do>
+*** erstellt: 						<24.052018> 
+*** von: 							<Andreas Martin> 
+*** E-Mail: 						<martin@die-bonn.de> 
+*** Tel.: 							<022832944278> 
+*** 
+*** Dateiname des Output-Files: 	<20180524.log> 
+*** 
+*** 
+*** Grundriss des Programms: 
+***			<Programm zur Erfassung der regionalen käufigkeit von betrieblichen Weiterbildungsangeboten> 
+***
+*** 
+*** Verwendete Variablen: 
+*** Originalvariablen: 	
+***			   <unr: Unternehmen ID
+***				bnr: Betrieb ID
+***				jahr: Jahr
+***				urs_rt_rechtsform_k: Rechtsform
+***				urs_nl_wz= Branche wz08
+***				urs_nl_ags: Amtlicher Gemeindeschlüssel>
+*** 
+***
+*** Neu angelegte Variablen in dieser Syntax <syntaxname.sas>:  
+***			   <Rechtsform
+***				wzwD08
+***				wzwVG08
+***				wzwInd08
+***				bl016
+***				bl015
+***				bl014
+***				bl013
+***				bl012
+***				bl011
+***				bl010
+***				bl09
+***				bl08
+***				bl07
+***				bl06
+***				bl04
+***				bl03
+***				bl02
+***				bl01
+***				SVB49
+***				SVB19
+***				SVB9
+***				Kreis>
+*** 
+***    
+***            
+*** Gewichtungsvariable: 	-
+***
+***
+********************************************************************************************************************
+********************************************************************************************************************
+
+
+
+********************************************************************************************************************
+*** I. Datenaufbereitung
+********************************************************************************************************************
+
+clear
+*** Betriebsdatei 
+use "G:\FZDH\LSK\Nutzungsantraege\3451-2017 DIE - Schrader (3)\Daten\uneu_panel2016_nl_3451.dta" 
+
+set more off
+***mergen der Unternehmensdatei 
+merge m:1 unr jahr using "G:\FZDH\LSK\Nutzungsantraege\3451-2017 DIE - Schrader (3)\Daten\uneu_panel2016_we_3451.dta" 
+
+*** wir benötigen nur den Rechtsstand
+drop urs_we_ags urs_we_gemeindeverb urs_we_beginn_datum urs_we_ende_datum urs_we_gruendungs_datum ///
+urs_we_wz  urs_we_svb_durchschnitt urs_we_geb_durchschnitt ///
+urs_we_svb_stichtag urs_we_geb_stichtag urs_we_besch_gad urs_we_tp_gesch urs_we_tp_gesch_gad urs_we_umsatz ///
+urs_we_umsatz_gad urs_rt_gruppen_kennz urs_rt_gruppen_kennz_gad urs_rt_oeff_unternehmen urs_rt_inst_sektor /// 
+
+keep if urs_we_auswertungsrelevant=="1" /* Einfügung im FDZ */
+keep if urs_nl_auswertungsrelevant=="1" /* Einfügung im FDZ */
+
+drop if _merge==2 // Unternehmen ohne Niederlassung(????) 
+drop if _merge==1 // Niederlassung ohne Unternehmen -> kein Rechtsstand (?)
+
+***nur 2013
+keep if jahr==2013
+
+
+*** Wirtschaftszweig auf 3-Steller trimmen
+gen wz08=  substr(urs_nl_wz,1,3) 
+
+
+***Wissensintensive Industrie
+gen wzwInd08=0
+replace wzwInd08=1 if wz08 == "201"
+replace wzwInd08=1 if wz08 == "202"
+replace wzwInd08=1 if wz08 == "204"
+replace wzwInd08=1 if wz08 == "205"
+replace wzwInd08=1 if wz08 == "211"
+replace wzwInd08=1 if wz08 == "212"
+replace wzwInd08=1 if wz08 == "253"
+replace wzwInd08=1 if wz08 == "254"
+replace wzwInd08=1 if wz08 == "261"
+replace wzwInd08=1 if wz08 == "262"
+replace wzwInd08=1 if wz08 == "263"
+replace wzwInd08=1 if wz08 == "264"
+replace wzwInd08=1 if wz08 == "265"
+replace wzwInd08=1 if wz08 == "266"
+replace wzwInd08=1 if wz08 == "267"
+replace wzwInd08=1 if wz08 == "271"
+replace wzwInd08=1 if wz08 == "274"
+replace wzwInd08=1 if wz08 == "279"
+replace wzwInd08=1 if wz08 == "281"
+replace wzwInd08=1 if wz08 == "282"
+replace wzwInd08=1 if wz08 == "289"
+replace wzwInd08=1 if wz08 == "291"
+replace wzwInd08=1 if wz08 == "293"
+replace wzwInd08=1 if wz08 == "301"
+replace wzwInd08=1 if wz08 == "302"
+replace wzwInd08=1 if wz08 == "303"
+replace wzwInd08=1 if wz08 == "304"
+replace wzwInd08=1 if wz08 == "332" 
+
+
+*** wissensintensives Verarbeitendes Gewerbe 
+gen wzwVG08=0
+replace wzwVG08=1 if wz08== "061"
+replace wzwVG08=1 if wz08== "062"
+replace wzwVG08=1 if wz08== "091"
+replace wzwVG08=1 if wz08== "192"
+replace wzwVG08=1 if wz08== "351"
+replace wzwVG08=1 if wz08== "352"
+replace wzwVG08=1 if wz08== "353"
+
+*** wissensintensive Dienstleistungen
+
+gen wzwD08=0 
+replace wzwD08=1 if wz08== "411"
+replace wzwD08=1 if wz08== "581"
+replace wzwD08=1 if wz08== "582"
+replace wzwD08=1 if wz08== "591"
+replace wzwD08=1 if wz08== "592"
+replace wzwD08=1 if wz08== "601"
+replace wzwD08=1 if wz08== "602"
+replace wzwD08=1 if wz08== "611"
+replace wzwD08=1 if wz08== "612"
+replace wzwD08=1 if wz08== "613"
+replace wzwD08=1 if wz08== "619"
+replace wzwD08=1 if wz08== "620"
+replace wzwD08=1 if wz08== "631"
+replace wzwD08=1 if wz08== "639"
+replace wzwD08=1 if wz08== "641"
+replace wzwD08=1 if wz08== "642"
+replace wzwD08=1 if wz08== "643"
+replace wzwD08=1 if wz08== "649"
+replace wzwD08=1 if wz08== "651"
+replace wzwD08=1 if wz08== "652"
+replace wzwD08=1 if wz08== "653"
+replace wzwD08=1 if wz08== "661"
+replace wzwD08=1 if wz08== "663"
+replace wzwD08=1 if wz08== "681"
+replace wzwD08=1 if wz08== "683"
+replace wzwD08=1 if wz08== "691"
+replace wzwD08=1 if wz08== "692"
+replace wzwD08=1 if wz08== "701"
+replace wzwD08=1 if wz08== "702"
+replace wzwD08=1 if wz08== "711"
+replace wzwD08=1 if wz08== "712"
+replace wzwD08=1 if wz08== "721"
+replace wzwD08=1 if wz08== "722"
+replace wzwD08=1 if wz08== "732"
+replace wzwD08=1 if wz08== "741"
+replace wzwD08=1 if wz08== "743"
+replace wzwD08=1 if wz08== "749"
+replace wzwD08=1 if wz08== "750"
+replace wzwD08=1 if wz08== "774"
+replace wzwD08=1 if wz08== "821"
+replace wzwD08=1 if wz08== "823"
+replace wzwD08=1 if wz08== "861"
+replace wzwD08=1 if wz08== "862"
+replace wzwD08=1 if wz08== "869"
+replace wzwD08=1 if wz08== "900"
+replace wzwD08=1 if wz08== "910"
+
+***SVB: Klassifikation 0-9;10-19;20-49;50+
+gen SVB9=0
+la var SVB9 "bis unter 10"
+gen SVB19=0
+la var SVB19 "bis unter 20"
+gen SVB49=0
+la var SVB49 "bis unter 50"
+gen SVB50=0
+la var SVB50 "ueber 50"
+
+replace SVB9=1 if urs_nl_svb_durchschnitt >=0 & urs_nl_svb_durchschnitt < 10
+replace SVB9=1 if urs_nl_svb_durchschnitt ==. 
+replace SVB19=1 if urs_nl_svb_durchschnitt >=10 & urs_nl_svb_durchschnitt < 20
+replace SVB49=1 if urs_nl_svb_durchschnitt >=20 & urs_nl_svb_durchschnitt < 50
+replace SVB50=1 if urs_nl_svb_durchschnitt >=50 & urs_nl_svb_durchschnitt!=.
+
+
+
+***Bundeslaender 
+gen bula=  substr( urs_nl_ags,1,2)
+
+gen bl01=0
+la var bl01 "Schleswig-Holstein"
+gen bl02=0
+la var bl02 "Hamburg"
+gen bl03=0
+la var bl03 "Niedersachsen"
+gen bl04=0
+la var bl04 "Bremen"
+gen bl05=0
+la var bl05 "NRW"
+gen bl06=0
+la var bl06 "Hessen"
+gen bl07=0
+la var bl07 "Reinland-Pfalz"
+gen bl08=0
+la var bl08 "BW"
+gen bl09=0
+la var bl09 "Bayern"
+gen bl010=0
+la var bl010 "saarland"
+gen bl011=0
+la var bl011 "Berlin"
+gen bl012=0
+la var bl012 "Brandenburg"
+gen bl013=0
+la var bl013 "Meck-Pomm"
+gen bl014=0
+la var bl014 "Sachsen"
+gen bl015=0
+la var bl015 "Sachsen-Anhalt"
+gen bl016=0
+la var bl016 "Th𲩮gen"
+
+replace bl01=1 if bula=="01"
+replace bl02=1 if bula=="02"
+replace bl03=1 if bula=="03"
+replace bl04=1 if bula=="04"
+replace bl05=1 if bula=="05"
+replace bl06=1 if bula=="06"
+replace bl07=1 if bula=="07"
+replace bl08=1 if bula=="08"
+replace bl09=1 if bula=="09"
+replace bl010=1 if bula=="10"
+replace bl011=1 if bula=="11"
+replace bl012=1 if bula=="12"
+replace bl013=1 if bula=="13"
+replace bl014=1 if bula=="14"
+replace bl015=1 if bula=="15"
+replace bl016=1 if bula=="16" 
+
+
+
+***Kreise
+gen Kreis=  substr(urs_nl_ags,1,5)
+
+
+***Geschaezte betriebliche Weiterbildung: Wahrscheinlichkeit eines externen Angebotes
+#delimit;
+gen WBextern=1/(1+ 
+exp(-(
+ 2.117288
++ wzwD08*  1.022818
++ wzwVG08* 0.7448455
++ wzwInd08* 0.2300987
++ bl016* -0.3979672
++ bl015*  -0.1335689
++ bl014*  -0.1184836
++ bl013*  0.0022837
++ bl012*  -0.1810347
++ bl011*  -0.2112917
++ bl010*  0.1214051
++ bl09*  0.0143625
++ bl08*  0.3612805
++ bl07*  -0.0229403
++ bl06* -0.1784769
++ bl04* -0.0414001
++ bl03* 0.1703087
++ bl02* -0.0796943
++ bl01* 0.0460011
++ SVB49* -1.266531
++ SVB19* -1.79635
++ SVB9* -2.918289 )));
+#delimit cr
+***Geschaezte betriebliche Weiterbildung: Wahrscheinlichkeit eines internen Angebotes
+
+#delimit;
+gen WBintern=1/(1+ 
+exp(-(
+ 1.397619
++ wzwD08*  0.6970912 
++ wzwVG08* 0.8017155
++ wzwInd08*  0.1426371
++ bl016* -0.4635585
++ bl015*  -0.3213972
++ bl014*  -0.3367473
++ bl013*  0.1243156
++ bl012*  -0.2855887
++ bl011*  -0.3254455
++ bl010*  -0.1511651
++ bl09*  0.0221961
++ bl08*  0.6474576
++ bl07*  -0.0295486
++ bl06* 0.2449599
++ bl04* 0.2078025
++ bl03* 0.3106299
++ bl02* -0.142794 
++ bl01* -0.1062159
++ SVB49* -1.262343
++ SVB19* -1.757511
++ SVB9* -3.067644 )));
+#delimit cr
+
+
+
+***Geschaezte betriebliche Weiterbildung: Wahrscheinlichkeit Vortraege/Tagungen
+
+#delimit;
+gen WBvt=1/(1+ 
+exp(-(
+ 1.05992
++ wzwD08*  1.012422
++ wzwVG08* 0.9707959
++ wzwInd08* 0.4012283 
++ bl016* -0.3873379
++ bl015*  -0.1554025
++ bl014*  -0.1527202
++ bl013*  -0.0258828
++ bl012*  -0.4195331
++ bl011*  -0.2370596
++ bl010*  0.0606605
++ bl09*  0.0109871
++ bl08*  0.1600092
++ bl07*  -0.2136107
++ bl06* -0.0292207 
++ bl04* 0.1013656
++ bl03* 0.2471531
++ bl02* -0.1556809
++ bl01* -0.2357276
++ SVB49* -1.104778
++ SVB19* -1.5404
++ SVB9* -2.652412 )));
+#delimit cr
+
+
+
+
+
+
+
+
+********************************************************************************************************************
+*** II. Datenauswertung
+********************************************************************************************************************
+
+table  Kreis if jahr==2013 , contents (sum WBextern sum WBintern sum WBvt)
+
+
+********************************************************************************************************************
+
+
+********************************************************************************************************************
+********************************************************************************************************************
+
+log close
+
+exit
+
+
+
+
